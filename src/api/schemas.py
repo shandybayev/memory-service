@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class MessageSchema(BaseModel):
@@ -56,6 +56,12 @@ class SearchRequest(BaseModel):
     session_id: str | None = None
     user_id: str | None = None
     limit: int = Field(default=10, ge=1, le=100)
+
+    @model_validator(mode="after")
+    def require_scope(self) -> "SearchRequest":
+        if not self.session_id and not self.user_id:
+            raise ValueError("At least one of session_id or user_id must be provided")
+        return self
 
 
 class SearchResultSchema(BaseModel):

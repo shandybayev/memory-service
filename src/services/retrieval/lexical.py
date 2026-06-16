@@ -7,6 +7,8 @@ import re
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from src.services.retrieval.scope import sql_scope_clause
+
 
 def _fts_query(query: str) -> str:
     tokens = re.findall(r"\w+", query.lower())
@@ -33,15 +35,10 @@ def lexical_search(
         WHERE search_fts MATCH :query
     """
     params: dict = {"query": fts_q, "limit": limit}
-    filters = []
-    if session_id:
-        filters.append("sd.session_id = :session_id")
-        params["session_id"] = session_id
-    if user_id:
-        filters.append("sd.user_id = :user_id")
-        params["user_id"] = user_id
-    if filters:
-        sql += " AND " + " AND ".join(filters)
+    scope_sql, scope_params = sql_scope_clause(session_id=session_id, user_id=user_id)
+    if scope_sql:
+        sql += f" AND {scope_sql}"
+        params.update(scope_params)
     sql += " ORDER BY rank LIMIT :limit"
 
     rows = db.execute(text(sql), params).fetchall()

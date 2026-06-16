@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.api.schemas import MessageSchema
@@ -63,6 +64,25 @@ class ExtractionPipeline:
         self, db: Session, turn: Turn, item: ExtractedMemory
     ) -> list[Memory]:
         assert turn.user_id is not None
+        for attempt in range(2):
+            try:
+                with db.begin_nested():
+                    return self._persist_memory(db, turn, item)
+            except IntegrityError:
+                if attempt == 0:
+                    logger.warning(
+                        "Concurrent memory write for user=%s key=%s; retrying",
+                        turn.user_id,
+                        item.key,
+                    )
+                    db.expire_all()
+                    continue
+                raise
+        return []
+
+    def _persist_memory(
+        self, db: Session, turn: Turn, item: ExtractedMemory
+    ) -> list[Memory]:
         now = utcnow()
         affected: list[Memory] = []
 
@@ -84,6 +104,12 @@ class ExtractionPipeline:
             existing.source_session = turn.session_id
             return [existing]
 
+        if existing and not self._same_value(existing.value, item.value):
+            existing.active = False
+            existing.updated_at = now
+            affected.append(existing)
+            db.flush()
+
         memory = Memory(
             user_id=turn.user_id,
             type=item.type,
@@ -97,21 +123,16 @@ class ExtractionPipeline:
             active=True,
             search_text=item.search_text,
         )
-        db.add(memory)
-        db.flush()
-
-        if existing and not self._same_value(existing.value, item.value):
-            existing.active = False
-            existing.updated_at = now
+        if existing:
             memory.supersedes = existing.id
-            affected.append(existing)
             logger.info(
                 "Memory %s supersedes %s for key %s",
                 memory.id,
                 existing.id,
                 item.key,
             )
-
+        db.add(memory)
+        db.flush()
         affected.append(memory)
         return affected
 

@@ -35,6 +35,7 @@ def init_db() -> None:
     engine = get_engine()
     Base.metadata.create_all(bind=engine)
     _init_fts(engine)
+    _ensure_memory_uniqueness(engine)
 
 
 def _init_fts(engine) -> None:
@@ -47,6 +48,21 @@ def _init_fts(engine) -> None:
                     content,
                     tokenize='porter unicode61'
                 )
+                """
+            )
+        )
+        conn.commit()
+
+
+def _ensure_memory_uniqueness(engine) -> None:
+    """One active memory per (user_id, key); enforced at the database layer."""
+    with engine.connect() as conn:
+        conn.execute(
+            text(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS ix_memories_user_key_active_unique
+                ON memories(user_id, key)
+                WHERE active = 1
                 """
             )
         )

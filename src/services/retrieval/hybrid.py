@@ -13,6 +13,7 @@ from src.core.config import get_settings
 from src.db.models import Memory, SearchDocument
 from src.services.retrieval.fusion import reciprocal_rank_fusion
 from src.services.retrieval.lexical import lexical_search
+from src.services.retrieval.scope import apply_search_scope
 from src.services.retrieval.semantic import SemanticEncoder
 
 logger = logging.getLogger(__name__)
@@ -137,17 +138,22 @@ class HybridRetriever:
             global_user_hits = self.search(db, query, user_id=user_id, limit=limit)
             session_hits = self._merge_hits(session_hits, global_user_hits)
 
+        stale_values: set[str] = set()
+        if user_id:
+            inactive = (
+                db.query(Memory)
+                .filter(Memory.user_id == user_id, Memory.active.is_(False))
+                .all()
+            )
+            stale_values = {m.value.lower() for m in inactive}
+
         combined = self._merge_hits(user_hits, session_hits)
-        if user_hits:
-            combined = [
-                h
-                for h in combined
-                if h.metadata.get("active") is not False
-                and (
-                    h.metadata.get("source") == "active_memory"
-                    or h.metadata.get("memory_type")
-                )
-            ]
+        combined = [
+            h
+            for h in combined
+            if h.metadata.get("active") is not False
+            and self._include_in_recall(h, stale_values)
+        ]
         combined.sort(key=lambda h: h.score, reverse=True)
         return combined[:limit]
 
@@ -158,15 +164,11 @@ class HybridRetriever:
         session_id: str | None,
         user_id: str | None,
     ) -> list[SearchDocument]:
-        q = db.query(SearchDocument)
-        if session_id and user_id:
-            q = q.filter(
-                (SearchDocument.session_id == session_id) | (SearchDocument.user_id == user_id)
-            )
-        elif session_id:
-            q = q.filter(SearchDocument.session_id == session_id)
-        elif user_id:
-            q = q.filter(SearchDocument.user_id == user_id)
+        q = apply_search_scope(
+            db.query(SearchDocument),
+            session_id=session_id,
+            user_id=user_id,
+        )
         docs = q.all()
         return [
             d
@@ -214,6 +216,16 @@ class HybridRetriever:
             if "preference" in mem.key and "prefer" in q:
                 return True
         return False
+
+    @staticmethod
+    def _include_in_recall(hit: RetrievalHit, stale_values: set[str]) -> bool:
+        if hit.metadata.get("source") == "active_memory" or hit.metadata.get("memory_type"):
+            return True
+        if stale_values:
+            content = hit.content.lower()
+            if any(stale in content for stale in stale_values):
+                return False
+        return True
 
     @staticmethod
     def _merge_hits(a: list[RetrievalHit], b: list[RetrievalHit]) -> list[RetrievalHit]:

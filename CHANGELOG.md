@@ -95,3 +95,21 @@ All notable changes to this memory service implementation.
 ### Notes
 - Ready for `docker compose up` with no manual DB migration steps (`create_all` on startup).
 - LLM extraction remains optional; service is fully functional without external APIs.
+
+---
+
+## [1.1.0] - 2025-06-16 — Critical fixes from self-review
+
+### Fixed
+- **C1** Lexical FTS scope now matches semantic scope (`session OR user`, not `AND`).
+- **C2** `POST /search` rejects unscoped requests (requires `session_id` and/or `user_id`).
+- **C3** Partial unique index on active `(user_id, key)`; supersession deactivates old row before insert; retry on concurrent write.
+- **C4** Recall retains recent conversation snippets while filtering turn text that repeats superseded fact values.
+
+### Added
+- Shared retrieval scoping helper (`services/retrieval/scope.py`).
+- Tests for DELETE endpoints, cross-session recall, and unscoped search validation.
+
+### Observed
+- Cross-session recall (Berlin fact from `sess-origin`, queried in `sess-new`) passes with aligned FTS scope.
+- Supersession tests still pass: stale Stripe turn text excluded via inactive-value filter, not blanket conversation drop.

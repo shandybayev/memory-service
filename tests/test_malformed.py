@@ -65,6 +65,14 @@ def test_tool_messages(client):
     assert response.status_code == 201
 
 
+def test_search_requires_scope(client):
+    response = client.post(
+        "/search",
+        json={"query": "anything", "limit": 5},
+    )
+    assert response.status_code == 422
+
+
 def test_oversized_payload_returns_413(client, monkeypatch):
     monkeypatch.setenv("MAX_TURN_PAYLOAD_BYTES", "200")
     from src.core.config import get_settings

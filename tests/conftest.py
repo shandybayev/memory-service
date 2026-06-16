@@ -16,7 +16,7 @@ os.environ.setdefault("DATABASE_URL", "sqlite://")
 from src.api import dependencies as deps
 from src.db import session as db_module
 from src.db.models import Base
-from src.db.session import _init_fts
+from src.db.session import _ensure_memory_uniqueness, _init_fts
 from src.main import app
 
 
@@ -29,6 +29,7 @@ def client() -> Generator[TestClient, None, None]:
     )
     Base.metadata.create_all(bind=engine)
     _init_fts(engine)
+    _ensure_memory_uniqueness(engine)
     TestingSession = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
     db_module._engine = engine

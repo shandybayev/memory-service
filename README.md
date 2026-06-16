@@ -105,9 +105,11 @@ Hybrid retrieval (not vector-only):
 
 1. Stable active user facts
 2. Query-relevant memories
-3. Recent conversation snippets
+3. Recent conversation snippets (when token budget allows; stale superseded facts filtered out)
 
-Context is assembled from indexed content only — **never hallucinated**.
+Lexical and semantic channels share the same scope: documents match **session OR user** when both IDs are provided.
+
+`POST /search` requires at least one of `session_id` or `user_id` to prevent cross-tenant leakage.
 
 ## Fact evolution
 
@@ -115,6 +117,7 @@ When a new memory shares a `key` with an active memory but a different `value`:
 
 - Old memory: `active=false`, kept for history
 - New memory: `active=true`, `supersedes=<old_id>`
+- A partial unique index enforces one active memory per `(user_id, key)`
 - Recall and search boost active facts; stale values are deprioritized
 
 Example: “I work at Stripe” → “I just joined Notion” yields active `Notion`, superseded `Stripe`.
@@ -153,6 +156,8 @@ Test coverage:
 - Malformed input (`tests/test_malformed.py`)
 - Supersession (`tests/test_supersession.py`)
 - Recall quality fixture (`tests/test_recall_quality.py`) — reports hit rate on scripted conversations in `fixtures/`
+- DELETE endpoints (`tests/test_delete.py`)
+- Cross-session recall (`tests/test_cross_session_recall.py`)
 
 Docker persistence test:
 
