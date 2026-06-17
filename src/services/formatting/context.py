@@ -20,11 +20,7 @@ class ContextFormatter:
         if not hits:
             return RecallResponse(context="", citations=[])
 
-        facts = [
-            h
-            for h in hits
-            if h.metadata.get("memory_type") == "fact" or h.metadata.get("source") == "active_memory"
-        ]
+        facts = [h for h in hits if h.metadata.get("memory_type") == "fact"]
         preferences = [h for h in hits if h.metadata.get("memory_type") in ("preference", "opinion")]
         events = [h for h in hits if h.metadata.get("memory_type") == "event"]
         conversational = [h for h in hits if h not in facts + preferences + events]
@@ -66,10 +62,11 @@ class ContextFormatter:
 
     def _format_hit(self, hit: RetrievalHit) -> str:
         meta = hit.metadata or {}
-        if meta.get("source") == "active_memory" or meta.get("memory_type"):
+        mem_type = meta.get("memory_type", "memory")
+        if meta.get("memory_type") or meta.get("source") == "active_memory":
             key = meta.get("key", "")
             value = hit.content.split("=", 1)[-1].strip()
-            return f"- [{meta.get('memory_type', 'memory')}] {key}: {value}"
+            return f"- [{mem_type}] {key}: {value}"
         return f"- [conversation] {hit.content}"
 
     def _dedupe_content(self, hits: list[RetrievalHit]) -> list[RetrievalHit]:

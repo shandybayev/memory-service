@@ -73,6 +73,39 @@ def test_search_requires_scope(client):
     assert response.status_code == 422
 
 
+def test_search_no_alphanumeric_tokens_returns_422(client):
+    response = client.post(
+        "/search",
+        json={"query": "!!!", "session_id": "s1", "limit": 5},
+    )
+    assert response.status_code == 422
+
+
+def test_search_fts_poison_query_never_500(client):
+    """Malformed FTS syntax must not crash the service."""
+    response = client.post(
+        "/search",
+        json={"query": '" OR "', "session_id": "s1", "user_id": "u1", "limit": 5},
+    )
+    assert response.status_code != 500
+    assert response.status_code in (200, 422)
+
+
+def test_recall_fts_poison_query_never_500(client):
+    post_turn(client, session_id="s-poison", user_id="u-poison")
+    response = client.post(
+        "/recall",
+        json={
+            "query": '" OR "',
+            "session_id": "s-poison",
+            "user_id": "u-poison",
+            "max_tokens": 512,
+        },
+    )
+    assert response.status_code != 500
+    assert response.status_code == 200
+
+
 def test_oversized_payload_returns_413(client, monkeypatch):
     monkeypatch.setenv("MAX_TURN_PAYLOAD_BYTES", "200")
     from src.core.config import get_settings

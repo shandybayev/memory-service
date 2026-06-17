@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any, Literal
 
@@ -56,6 +57,13 @@ class SearchRequest(BaseModel):
     session_id: str | None = None
     user_id: str | None = None
     limit: int = Field(default=10, ge=1, le=100)
+
+    @field_validator("query")
+    @classmethod
+    def query_has_searchable_tokens(cls, v: str) -> str:
+        if not re.search(r"\w", v):
+            raise ValueError("query must contain at least one alphanumeric token")
+        return v
 
     @model_validator(mode="after")
     def require_scope(self) -> "SearchRequest":

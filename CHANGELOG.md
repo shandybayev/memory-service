@@ -113,3 +113,26 @@ All notable changes to this memory service implementation.
 ### Observed
 - Cross-session recall (Berlin fact from `sess-origin`, queried in `sess-new`) passes with aligned FTS scope.
 - Supersession tests still pass: stale Stripe turn text excluded via inactive-value filter, not blanket conversation drop.
+
+---
+
+## [1.2.0] - 2025-06-16 — Submission hardening
+
+### Fixed
+- FTS malformed/poison queries no longer cause HTTP 500; `OperationalError` returns empty lexical hits; reserved FTS tokens stripped.
+- `SearchRequest` rejects queries with no alphanumeric tokens (`422`).
+- `/health` probes database and FTS readiness; returns `503` when degraded.
+- Context formatter labels preferences/opinions correctly (not as `[fact]`).
+
+### Added
+- `src/core/health.py` readiness checks.
+- `tests/test_health.py`; FTS poison tests in `test_malformed.py`.
+- Recall quality tests assert `optional_facts` (Berlin/NYC move) and `expected_memory_keys`.
+- `FINAL_SUBMISSION_CHECKLIST.md` for reviewer verification.
+
+### Documentation
+- README: health behavior, FTS hardening, search scope deviation rationale, accurate `.env` weight notes.
+- `.env.example`: note that fusion channel weights are reserved.
+
+### Observed
+- Submission-ready within audit constraints: no architecture changes, no new infrastructure deps.

@@ -1,6 +1,7 @@
 """API route handlers."""
 
 from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from src.api.dependencies import db_dep, read_body_with_limit
@@ -16,6 +17,7 @@ from src.api.schemas import (
 from src.services.memory_service import DeletionService, MemoryQueryService
 from src.services.recall_service import RecallService
 from src.services.turn_service import TurnService
+from src.core.health import readiness_check
 
 router = APIRouter()
 
@@ -26,8 +28,11 @@ _deletion_service = DeletionService()
 
 
 @router.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+def health(db: Session = Depends(db_dep)):
+    payload, ready = readiness_check(db)
+    if not ready:
+        return JSONResponse(status_code=503, content=payload)
+    return payload
 
 
 @router.post("/turns", status_code=status.HTTP_201_CREATED, response_model=TurnCreateResponse)

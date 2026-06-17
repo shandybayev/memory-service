@@ -2,19 +2,27 @@
 
 from __future__ import annotations
 
+import logging
 import re
 
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from src.services.retrieval.scope import sql_scope_clause
 
+logger = logging.getLogger(__name__)
 
-def _fts_query(query: str) -> str:
+# FTS5 treats these as syntax; strip from tokenization to reduce parse errors.
+_FTS_RESERVED = frozenset({"AND", "OR", "NOT", "NEAR"})
+
+
+def _fts_query(query: str) -> str | None:
     tokens = re.findall(r"\w+", query.lower())
+    tokens = [t for t in tokens if t not in _FTS_RESERVED][:12]
     if not tokens:
-        return '""'
-    return " OR ".join(f'"{t}"' for t in tokens[:12])
+        return None
+    return " OR ".join(f'"{t}"' for t in tokens)
 
 
 def lexical_search(
@@ -27,6 +35,9 @@ def lexical_search(
 ) -> list[tuple[str, float, str]]:
     """Return (doc_id, score, content) ranked by BM25-like FTS rank."""
     fts_q = _fts_query(query)
+    if fts_q is None:
+        return []
+
     sql = """
         SELECT sd.id, sd.content,
                bm25(search_fts) AS rank
@@ -41,7 +52,11 @@ def lexical_search(
         params.update(scope_params)
     sql += " ORDER BY rank LIMIT :limit"
 
-    rows = db.execute(text(sql), params).fetchall()
+    try:
+        rows = db.execute(text(sql), params).fetchall()
+    except OperationalError as exc:
+        logger.warning("FTS query failed for %r: %s", query, exc)
+        return []
     if not rows:
         return []
 
