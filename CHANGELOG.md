@@ -104,3 +104,15 @@ Default port, healthcheck, smoke scripts, and docs are aligned with the spec. RE
 
 ### Removed
 - Internal working documents from the repository root.
+
+---
+
+## [1.5.0] - 2025-06-16 — Final eval hardening
+
+### Added
+- Additional high-precision extraction patterns for common human phrasing (`based in`, `now at`, `currently at`, `moved over to`, `working at`, `located in`, and similar).
+- Multi-hop recall-quality fixture (location + employment compound probe).
+
+### Changed
+- `/search` filters turn snippets that repeat superseded inactive memory values (same logic as recall).
+- `SearchResult.session_id` falls back to the request `session_id` when a hit has no session stored.

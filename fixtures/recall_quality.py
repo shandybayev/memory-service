@@ -96,4 +96,31 @@ RECALL_FIXTURES = [
             }
         ],
     },
+    {
+        "name": "multi_hop_location_job",
+        "user_id": "user-multihop",
+        "session_id": "sess-multihop",
+        "turns": [
+            {
+                "messages": [
+                    {"role": "user", "content": "I'm based in Seattle."},
+                    {"role": "assistant", "content": "Nice city."},
+                ],
+                "expected_memory_keys": ["location.residence"],
+            },
+            {
+                "messages": [
+                    {"role": "user", "content": "I'm now at Figma."},
+                    {"role": "assistant", "content": "Great company."},
+                ],
+                "expected_memory_keys": ["employment.company"],
+            },
+        ],
+        "probes": [
+            {
+                "query": "Where does the user live and where do they work?",
+                "expected_facts": ["Seattle", "Figma"],
+            }
+        ],
+    },
 ]

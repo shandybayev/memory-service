@@ -36,6 +36,12 @@ def test_rule_extractor_berlin_move():
             "location.residence",
             "Berlin",
         ),
+        ("I'm based in Chicago.", "location.residence", "Chicago"),
+        ("I'm now at Airbnb.", "employment.company", "Airbnb"),
+        ("I'm currently at Spotify.", "employment.company", "Spotify"),
+        ("I moved over to Vancouver.", "location.residence", "Vancouver"),
+        ("I'm located in Dallas.", "location.residence", "Dallas"),
+        ("Working at Netflix.", "employment.company", "Netflix"),
     ],
 )
 def test_rule_extractor_common_patterns(content, expected_key, expected_value):

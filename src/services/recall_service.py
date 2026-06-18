@@ -38,7 +38,7 @@ class RecallService:
             SearchResultSchema(
                 content=h.content,
                 score=round(h.score, 4),
-                session_id=h.session_id or "",
+                session_id=h.session_id or payload.session_id or "",
                 timestamp=h.timestamp,
                 metadata=h.metadata,
             )

@@ -39,3 +39,14 @@ def test_employment_supersession(client):
     ).json()
     assert "Notion" in recall["context"]
     assert "Stripe" not in recall["context"]
+
+    search = client.post(
+        "/search",
+        json={
+            "query": "Stripe",
+            "session_id": "sess-job",
+            "user_id": "user-job",
+            "limit": 10,
+        },
+    ).json()
+    assert not any("Stripe" in r["content"] for r in search["results"])

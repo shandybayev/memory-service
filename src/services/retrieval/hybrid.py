@@ -87,6 +87,16 @@ class HybridRetriever:
             )
 
         hits.sort(key=lambda h: h.score, reverse=True)
+
+        if user_id:
+            inactive = (
+                db.query(Memory)
+                .filter(Memory.user_id == user_id, Memory.active.is_(False))
+                .all()
+            )
+            stale_values = {m.value.lower() for m in inactive}
+            hits = [h for h in hits if self._include_in_recall(h, stale_values)]
+
         return hits[:limit]
 
     def recall_candidates(

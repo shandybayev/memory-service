@@ -15,6 +15,8 @@ FACT_PATTERNS: list[tuple[re.Pattern[str], MemoryType, str, float]] = [
         re.compile(
             r"\b(?:"
             r"i(?:'m| am)?\s+(?:now\s+)?(?:working|employed)\s+at|"
+            r"\bworking\s+at|"
+            r"i(?:'m| am)?\s+(?:now|currently)\s+at|"
             r"i\s+(?:just\s+)?(?:joined|started(?:\s+working)?\s+at|work\s+at)|"
             r"i(?:'ve| have)\s+joined|"
             r"i\s+switched\s+to"
@@ -28,11 +30,12 @@ FACT_PATTERNS: list[tuple[re.Pattern[str], MemoryType, str, float]] = [
     (
         re.compile(
             r"\b(?:"
-            r"i\s+(?:just\s+)?moved\s+to|"
+            r"i\s+(?:just\s+)?moved\s+(?:over\s+)?to|"
             r"i\s+live\s+in|"
             r"i(?:'m| am)\s+based\s+in|"
             r"i\s+relocated\s+to|"
             r"i(?:'m| am)\s+(?:now\s+)?(?:living|located)\s+in|"
+            r"i(?:'m| am)?\s+(?:now|currently)\s+located\s+in|"
             r"i\s+(?:currently|now)\s+live\s+in|"
             r"i\s+transferred\s+to"
             r")\s+(.+?)(?:[.!?,]|$)",
