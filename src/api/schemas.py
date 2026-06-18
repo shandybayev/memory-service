@@ -26,6 +26,7 @@ class TurnCreateRequest(BaseModel):
     session_id: str = Field(..., min_length=1, max_length=255)
     user_id: str | None = Field(default=None, max_length=255)
     messages: list[MessageSchema] = Field(..., min_length=1)
+    # Optional in this implementation: defaults to server UTC when omitted (see README).
     timestamp: datetime | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -64,12 +65,6 @@ class SearchRequest(BaseModel):
         if not re.search(r"\w", v):
             raise ValueError("query must contain at least one alphanumeric token")
         return v
-
-    @model_validator(mode="after")
-    def require_scope(self) -> "SearchRequest":
-        if not self.session_id and not self.user_id:
-            raise ValueError("At least one of session_id or user_id must be provided")
-        return self
 
 
 class SearchResultSchema(BaseModel):

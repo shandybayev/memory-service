@@ -11,6 +11,3 @@ build/
 *.egg-info/
 .coverage
 htmlcov/
-COMPLIANCE_AUDIT.md
-FINAL_SUBMISSION_CHECKLIST.md
-MANUAL_TESTING.md

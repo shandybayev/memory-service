@@ -65,12 +65,13 @@ def test_tool_messages(client):
     assert response.status_code == 201
 
 
-def test_search_requires_scope(client):
+def test_search_unscoped_returns_empty(client):
     response = client.post(
         "/search",
         json={"query": "anything", "limit": 5},
     )
-    assert response.status_code == 422
+    assert response.status_code == 200
+    assert response.json()["results"] == []
 
 
 def test_search_no_alphanumeric_tokens_returns_422(client):

@@ -19,7 +19,7 @@ _FTS_RESERVED = frozenset({"AND", "OR", "NOT", "NEAR"})
 
 def _fts_query(query: str) -> str | None:
     tokens = re.findall(r"\w+", query.lower())
-    tokens = [t for t in tokens if t not in _FTS_RESERVED][:12]
+    tokens = [t for t in tokens if t.upper() not in _FTS_RESERVED][:12]
     if not tokens:
         return None
     return " OR ".join(f'"{t}"' for t in tokens)
@@ -34,6 +34,8 @@ def lexical_search(
     limit: int = 50,
 ) -> list[tuple[str, float, str]]:
     """Return (doc_id, score, content) ranked by BM25-like FTS rank."""
+    if not session_id and not user_id:
+        return []
     fts_q = _fts_query(query)
     if fts_q is None:
         return []

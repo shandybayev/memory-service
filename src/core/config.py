@@ -13,8 +13,6 @@ class Settings(BaseSettings):
     max_turn_payload_bytes: int = 1_048_576
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
-    semantic_weight: float = 0.45
-    lexical_weight: float = 0.45
     recency_weight: float = 0.10
 
 

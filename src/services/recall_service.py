@@ -25,6 +25,8 @@ class RecallService:
         return self.formatter.build_recall(payload.query, hits, payload.max_tokens)
 
     def search(self, db: Session, payload: SearchRequest) -> SearchResponse:
+        if not payload.session_id and not payload.user_id:
+            return SearchResponse(results=[])
         hits = self.retriever.search(
             db,
             payload.query,

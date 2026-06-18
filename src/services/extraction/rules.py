@@ -13,7 +13,12 @@ from src.services.extraction.types import ExtractedMemory
 FACT_PATTERNS: list[tuple[re.Pattern[str], MemoryType, str, float]] = [
     (
         re.compile(
-            r"\b(?:i(?:'m| am)?\s+(?:now\s+)?(?:working|employed)\s+at|i\s+work\s+at|i\s+just\s+joined)\s+(.+?)(?:[.!?,]|$)",
+            r"\b(?:"
+            r"i(?:'m| am)?\s+(?:now\s+)?(?:working|employed)\s+at|"
+            r"i\s+(?:just\s+)?(?:joined|started(?:\s+working)?\s+at|work\s+at)|"
+            r"i(?:'ve| have)\s+joined|"
+            r"i\s+switched\s+to"
+            r")\s+(.+?)(?:[.!?,]|$)",
             re.I,
         ),
         MemoryType.fact,
@@ -22,7 +27,15 @@ FACT_PATTERNS: list[tuple[re.Pattern[str], MemoryType, str, float]] = [
     ),
     (
         re.compile(
-            r"\b(?:i\s+(?:just\s+)?moved\s+to|i\s+live\s+in|i(?:'m| am)\s+based\s+in|i\s+relocated\s+to)\s+(.+?)(?:[.!?,]|$)",
+            r"\b(?:"
+            r"i\s+(?:just\s+)?moved\s+to|"
+            r"i\s+live\s+in|"
+            r"i(?:'m| am)\s+based\s+in|"
+            r"i\s+relocated\s+to|"
+            r"i(?:'m| am)\s+(?:now\s+)?(?:living|located)\s+in|"
+            r"i\s+(?:currently|now)\s+live\s+in|"
+            r"i\s+transferred\s+to"
+            r")\s+(.+?)(?:[.!?,]|$)",
             re.I,
         ),
         MemoryType.fact,
@@ -145,15 +158,25 @@ class RuleExtractor:
         return found
 
     def _extract_move_events(self, combined: str) -> list[ExtractedMemory]:
-        pattern = re.compile(
-            r"moved\s+(?:from\s+)?(.+?)\s+to\s+(.+?)(?:[.!?,]|$)",
-            re.I,
+        match = re.search(
+            r"moved\s+(?:from\s+)?(.+?)\s+to\s+(.+?)(?:[.!?,]|$)", combined, re.I
         )
-        match = pattern.search(combined)
-        if not match:
-            return []
-        origin = self._clean_capture(match.group(1))
-        dest = self._clean_capture(match.group(2))
+        if match:
+            return self._build_move_memories(
+                self._clean_capture(match.group(1)),
+                self._clean_capture(match.group(2)),
+            )
+        match = re.search(
+            r"moved\s+to\s+(.+?)\s+from\s+(.+?)(?:[.!?,]|$)", combined, re.I
+        )
+        if match:
+            return self._build_move_memories(
+                self._clean_capture(match.group(2)),
+                self._clean_capture(match.group(1)),
+            )
+        return []
+
+    def _build_move_memories(self, origin: str, dest: str) -> list[ExtractedMemory]:
         if not dest:
             return []
         items = [
@@ -217,6 +240,7 @@ class RuleExtractor:
         value = value.strip().strip("\"'")
         value = re.sub(r"\s+as\s+a\s+.+$", "", value, flags=re.I)
         value = re.sub(r"\s+last\s+week$", "", value, flags=re.I)
+        value = re.sub(r"\s+last\s+month$", "", value, flags=re.I)
         value = re.sub(r"\s+", " ", value)
         return value[:500]
 

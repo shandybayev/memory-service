@@ -44,6 +44,8 @@ class HybridRetriever:
         user_id: str | None = None,
         limit: int = 10,
     ) -> list[RetrievalHit]:
+        if not session_id and not user_id:
+            return []
         docs = self._scoped_documents(db, session_id=session_id, user_id=user_id)
         if not docs:
             return []
@@ -107,10 +109,9 @@ class HybridRetriever:
                 .all()
             )
             for mem in active_memories:
-                if self._query_matches_memory(query, mem):
-                    boost = 2.0
-                else:
-                    boost = 1.2 if mem.type.value == "fact" else 1.0
+                if not self._query_matches_memory(query, mem):
+                    continue
+                boost = 2.0
                 user_hits.append(
                     RetrievalHit(
                         doc_id=mem.id,
